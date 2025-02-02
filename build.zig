@@ -5,21 +5,16 @@ const emulator = "Ryujinx";
 const flags = .{"-lnx"};
 const devkitpro = "/opt/devkitpro";
 
-pub fn build(b: *std.build.Builder) void {
-    const mode = b.standardReleaseOptions();
-
-    const obj = b.addObject("zig-switch", "src/main.zig");
-    obj.setOutputDir("zig-out");
+pub fn build(b: *std.Build) void {
+    const mode = b.standardOptimizeOption(.{});
+    const target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a57 }, .os_tag = .freestanding, .abi = .none });
+    const obj = b.addObject(.{ .name = "zig-switch", .root_source_file = b.path("src/main.zig"), .target = target, .optimize = mode });
     obj.linkLibC();
-    obj.setLibCFile(std.build.FileSource{ .path = "libc.txt" });
-    obj.addIncludeDir(devkitpro ++ "/libnx/include");
-    obj.addIncludeDir(devkitpro ++ "/portlibs/switch/include");
-    obj.setTarget(.{
-        .cpu_arch = .aarch64,
-        .os_tag = .freestanding,
-        .cpu_model = .{ .explicit = &std.Target.aarch64.cpu.cortex_a57 },
-    });
-    obj.setBuildMode(mode);
+    obj.setLibCFile(b.path("libc.txt"));
+    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/libnx/include" });
+    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/portlibs/switch/include" });
+
+    const installObj = b.addInstallBinFile(obj.getEmittedBin(), "../zig-switch.o");
 
     const extension = if (builtin.target.os.tag == .windows) ".exe" else "";
     const elf = b.addSystemCommand(&(.{
@@ -47,7 +42,7 @@ pub fn build(b: *std.build.Builder) void {
 
     b.default_step.dependOn(&nro.step);
     nro.step.dependOn(&elf.step);
-    elf.step.dependOn(&obj.step);
+    elf.step.dependOn(&installObj.step);
 
     const run_step = b.step("run", "Run in Yuzu");
     const yuzu = b.addSystemCommand(&.{ emulator, "zig-out/zig-switch.nro" });
