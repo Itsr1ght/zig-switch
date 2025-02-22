@@ -7,7 +7,10 @@ const devkitpro = "/opt/devkitpro";
 
 pub fn build(b: *std.Build) void {
     const mode = b.standardOptimizeOption(.{});
-    const target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a57 }, .os_tag = .freestanding, .abi = .none });
+    const target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64,
+        .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a57 },
+        .os_tag = .freestanding, .abi = .none }
+    );
     const obj = b.addObject(.{ .name = "zig-switch", .root_source_file = b.path("src/main.zig"), .target = target, .optimize = mode });
     obj.linkLibC();
     obj.setLibCFile(b.path("libc.txt"));
