@@ -1,15 +1,18 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const emulator = "Ryujinx";
+
 const flags = .{"-lnx"};
 const devkitpro = "/opt/devkitpro";
 
 pub fn build(b: *std.Build) void {
     const mode = b.standardOptimizeOption(.{});
-    const target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64,
-        .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a57 },
-        .os_tag = .freestanding, .abi = .none }
+    const target = b.resolveTargetQuery(
+        .{
+            .cpu_arch = .aarch64,
+            .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a57 },
+            .os_tag = .freestanding, .abi = .none
+        }
     );
     const obj = b.addObject(.{ .name = "zig-switch", .root_source_file = b.path("src/main.zig"), .target = target, .optimize = mode });
     obj.linkLibC();
@@ -47,8 +50,4 @@ pub fn build(b: *std.Build) void {
     nro.step.dependOn(&elf.step);
     elf.step.dependOn(&installObj.step);
 
-    const run_step = b.step("run", "Run in Yuzu");
-    const yuzu = b.addSystemCommand(&.{ emulator, "zig-out/zig-switch.nro" });
-    run_step.dependOn(&nro.step);
-    run_step.dependOn(&yuzu.step);
 }
